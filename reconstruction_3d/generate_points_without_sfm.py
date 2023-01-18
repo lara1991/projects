@@ -34,8 +34,11 @@ def main():
     matcher = cv2.BFMatcher()
 
     matches = []
-    for i in range(len(images)-1):
-        matches.append(matcher.knnMatch(descriptors[i],descriptors[i+1],k=2))
+    # num_images = len(images)-1
+    num_images = 1
+    for i in range(1):
+        matched_features = matcher.knnMatch(descriptors[i],descriptors[i+1],k=2)
+        matches.append(matched_features)
 
     # for match in matches:
     #     print(f"match: {match}")
@@ -51,22 +54,25 @@ def main():
     for idx,match in enumerate(matches):
         for m,n in match:
             if m.distance < 0.75*n.distance:
+                print(f"m: {m.queryIdx} mt: {n.trainIdx}")
                 good_matches.append(m)
 
                 print(keypoints[idx][n.queryIdx].pt)
-                print(len(keypoints[idx+1]),n.queryIdx)
+                print(len(keypoints[idx]),n.queryIdx)
                 print()
                 # # print(m)
 
                 x1,y1 = keypoints[idx][m.queryIdx].pt
-                x2,y2 = keypoints[idx+1][n.queryIdx].pt
+                x2,y2 = keypoints[idx+1][m.trainIdx].pt
                 pts_left.append(keypoints[idx][m.queryIdx].pt)
-                pts_right.append(keypoints[idx+1][n.queryIdx].pt)
+                pts_right.append(keypoints[idx+1][m.trainIdx].pt)
         
     # # find the fundamental matrix
     # pts1 = np.float32([keypoints[i][m.queryIdx].pt for m in good_matches for i in range(len(images))])
     # pts2 = np.float32([keypoints[i][m.queryIdx].pt for m in good_matches for i in range(1,len(images))])
 
+    pts_left = np.int32(pts_left)
+    pts_right = np.int32(pts_right)
     F,mask = cv2.findFundamentalMat(pts_left,pts_right,cv2.FM_RANSAC)
 
     print(F)
