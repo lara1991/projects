@@ -27,58 +27,81 @@ def load_images_and_get_features(img_path_list):
     return images,keypoints,descriptors
 
 def main():
+    
     img_dir = "image_frames"
 
     img_path_list = get_image_names(img_dir)
     images,keypoints,descriptors = load_images_and_get_features(img_path_list)
+    
+    # initialize intrinsic matrix, extrinsic matrices and 3D points
+    fx,fy,cx,cy = 1.,1,0,0
+    K = np.array(
+        [
+            [fx,0,cx],
+            [0,fy,cy],
+            [0,0,1]
+        ]
+    )
+    Rs = [np.eye(3) for i in range(len(images))]
+    ts = [np.zeros((3,1)) for i in range(len(images))]
+    points3D = []
+    
+    ## match the points for each pair of images
     matcher = cv2.BFMatcher()
 
     matches = []
     # num_images = len(images)-1
-    num_images = 1
-    for i in range(1):
+    num_images = len(images) - 1
+    for i in range(num_images):
         matched_features = matcher.knnMatch(descriptors[i],descriptors[i+1],k=2)
-        matches.append(matched_features)
-
-    # for match in matches:
-    #     print(f"match: {match}")
-
-    # exit(0)
-    
-    good_matches = []
-    pts_left = []
-    pts_right = []
-
-    print(len(keypoints),len(matches))
-    # print()
-    for idx,match in enumerate(matches):
-        for m,n in match:
-            if m.distance < 0.75*n.distance:
-                print(f"m: {m.queryIdx} mt: {n.trainIdx}")
-                good_matches.append(m)
-
-                print(keypoints[idx][n.queryIdx].pt)
-                print(len(keypoints[idx]),n.queryIdx)
-                print()
-                # # print(m)
-
-                x1,y1 = keypoints[idx][m.queryIdx].pt
-                x2,y2 = keypoints[idx+1][m.trainIdx].pt
-                pts_left.append(keypoints[idx][m.queryIdx].pt)
-                pts_right.append(keypoints[idx+1][m.trainIdx].pt)
         
-    # # find the fundamental matrix
-    # pts1 = np.float32([keypoints[i][m.queryIdx].pt for m in good_matches for i in range(len(images))])
-    # pts2 = np.float32([keypoints[i][m.queryIdx].pt for m in good_matches for i in range(1,len(images))])
-
-    pts_left = np.int32(pts_left)
-    pts_right = np.int32(pts_right)
-    F,mask = cv2.findFundamentalMat(pts_left,pts_right,cv2.FM_RANSAC)
-
-    print(F)
-
-
-
+        good_matches = []
+        for m,n in matched_features:
+            if m.distance < 0.75*n.distance:
+                good_matches.append(m)
+        
+        good_matches = sorted(good_matches,key=lambda x: x.distance)
+        
+        ## compute the Essential matrices
+        E,mask = cv2.findEssentialMat(
+            np.array([keypoints[i][m.queryIdx].pt for m in good_matches]),
+            np.array([keypoints[i+1][m.trainIdx].pt for m in good_matches]),
+            K,
+            cv2.RANSAC
+        )
+        _,R,t,mask = cv2.recoverPose(
+            E,
+            np.array([keypoints[i][m.queryIdx].pt for m in good_matches]),
+            np.array([keypoints[i+1][m.trainIdx].pt for m in good_matches]),
+            K
+        )
+        
+        #update the intrinsic and extrinsic matrices
+        Rs[i+1] = R.dot(Rs[i])
+        ts[i+1] = R.dot(ts[i]) + t
+        
+        # triangulate the points to get the 3D points cloud
+        
+        print(Rs[:2],ts[:2])
+        p1 = np.hstack((Rs[i],ts[i]))
+        
+        print(p1)
+        p2 = np.hstack((Rs[i+1],ts[i+1]))
+        points4D = cv2.triangulatePoints(
+            p1,p2,
+            np.array([keypoints[i][m.queryIdx].pt for m in good_matches]).T,
+            np.array([keypoints[i+1][m.trainIdx].pt for m in good_matches]).T
+        )
+        
+        #normalize the points
+        points4D /= points4D[-1]
+        points3D.append(points4D[:3].T)
+        
+    # stack the 3D points to a single array
+    points3D = np.vstack(points3D)
+    
+    print(points3D)
+   
 
 if __name__=="__main__":
     main()
