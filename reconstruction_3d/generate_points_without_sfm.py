@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 import os
+from mpl_toolkits import mplot3d
+import matplotlib.pyplot as plt
+
+plt.style.use('seaborn-poster')
 
 def get_image_names(img_dir):
     img_paths_list = []
@@ -25,6 +29,28 @@ def load_images_and_get_features(img_path_list):
         descriptors.append(des)
     
     return images,keypoints,descriptors
+
+## plot 3d point cloud
+def plot_3d(points_3d):
+    
+    x = points_3d[:,0]
+    y = points_3d[:,1]
+    z = points_3d[:,2]
+    
+    fig = plt.figure(figsize=(10,10))
+    ax = plt.axes(projection='3d')
+    ax.grid()
+    
+    ax.scatter(x, y, z, c = 'r', s = 50)
+    ax.set_title('3D Scatter Plot')
+
+    # Set axes label
+    ax.set_xlabel('x', labelpad=20)
+    ax.set_ylabel('y', labelpad=20)
+    ax.set_zlabel('z', labelpad=20)
+
+    plt.show()
+        
 
 def main():
     
@@ -101,6 +127,8 @@ def main():
     points3D = np.vstack(points3D)
     
     print(points3D)
+    
+    plot_3d(points_3d=points3D)
    
 
 if __name__=="__main__":
