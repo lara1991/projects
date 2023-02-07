@@ -100,7 +100,41 @@ def main():
     # stack the 3D points to a single array
     points3D = np.vstack(points3D)
     
+    print("points 3D")
     print(points3D)
+
+    
+
+    #incremental bundle adjustment
+    for i in range(len(images)):
+        print(points3D.shape,Rs[i].shape,ts[i].shape,K.shape)
+        proj_points,_ = cv2.projectPoints(points3D,Rs[i],ts[i],K,None)
+        proj_points = proj_points.reshape(-1,2)
+
+        print(proj_points.shape)
+        key_points_ = np.array([point.pt for point in keypoints[i]])
+        print(key_points_.shape)
+
+        errors = proj_points - key_points_
+        errors = errors.reshape(-1,2)
+        print(errors.shape)
+
+        # exit(0)
+        
+
+        J = np.zeros((len(errors)*2,6))
+        J[::2,:3] = points3D
+        J[1::2,3:] = points3D
+
+        delta,_,_,_ = np.linalg.lstsq(J,errors)
+        Rs[i] = cv2.Rodrigues(delta[:3])[0].dot(Rs[i])
+        ts[i] += delta[3:]
+
+    print("after the bundle adjustment")
+    print(points3D)
+
+
+
    
 
 if __name__=="__main__":
