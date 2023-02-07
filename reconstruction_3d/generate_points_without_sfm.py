@@ -41,13 +41,19 @@ def plot_3d(points_3d):
     ax = plt.axes(projection='3d')
     ax.grid()
     
-    ax.scatter(x, y, z, c = 'r', s = 50)
+    ax.scatter(x, y, z, c = 'g', s = 50)
     ax.set_title('3D Scatter Plot')
 
     # Set axes label
     ax.set_xlabel('x', labelpad=20)
     ax.set_ylabel('y', labelpad=20)
     ax.set_zlabel('z', labelpad=20)
+    
+    low = -3000
+    high = 3000
+    ax.set_xlim(low,high)
+    ax.set_ylim(low,high)
+    ax.set_zlim(low,high)
 
     plt.show()
         
