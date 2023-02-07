@@ -132,9 +132,8 @@ def main():
     # stack the 3D points to a single array
     points3D = np.vstack(points3D)
     
+    print("points 3D")
     print(points3D)
-    
-    plot_3d(points_3d=points3D)
    
 
 if __name__=="__main__":
