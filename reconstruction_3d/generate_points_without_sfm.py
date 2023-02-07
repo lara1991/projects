@@ -134,6 +134,8 @@ def main():
     
     print("points 3D")
     print(points3D)
+    
+    plot_3d(points_3D)
    
 
 if __name__=="__main__":
